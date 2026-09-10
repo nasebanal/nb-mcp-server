@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+        env:
+          # @nasebanal/sdk is hosted on GitHub Packages — .npmrc reads
+          # ${NPM_TOKEN} to install it.
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Audit dependencies
+        # Fail on any high/critical advisory. The allowlist is EMPTY on purpose —
+        # see apps/CLAUDE.md's npm-audit-fix propagation rule before adding one.
+        run: |
+          npm audit --audit-level=high --json > audit.json || true
+          node -e '
+            const a = require("./audit.json");
+            const allow = new Set([]); // 空を維持すること
+            const id = u => (u || "").split("/").pop();
+            const bad = Object.values(a.vulnerabilities || {}).filter(v =>
+              ["high", "critical"].includes(v.severity) &&
+              (v.via || []).some(x => typeof x === "object" && !allow.has(id(x.url)))
+            );
+            if (bad.length) {
+              console.error("Blocking high/critical advisories (not allowlisted):");
+              for (const b of bad) console.error("  -", b.name, "=>",
+                (b.via || []).filter(x => typeof x === "object").map(x => id(x.url)).join(", "));
+              process.exit(1);
+            }
+            console.log("Audit OK — no high/critical advisories.");
+          '
+          rm -f audit.json
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Wrangler build check
+        run: npx wrangler deploy --dry-run

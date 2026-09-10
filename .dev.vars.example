@@ -1,0 +1,12 @@
+# Auth0 configuration for local development
+# Copy this file to .dev.vars and fill in your Auth0 Regular Web Application's
+# credentials (see README.md "Auth0 setup").
+
+AUTH0_DOMAIN=dev-bv0p1636dyofjbmg.us.auth0.com
+AUTH0_AUDIENCE=https://api.nasebanal.com
+AUTH0_CLIENT_ID=your-regular-web-app-client-id
+AUTH0_CLIENT_SECRET=your-regular-web-app-client-secret
+
+# Shared secret for inbound /internal/* calls (must match the value set on
+# nb-account-api / nb-recorder-api / nb-target-api / nb-app-template-api).
+INTERNAL_SECRET=dev-only-shared-secret

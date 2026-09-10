@@ -1,0 +1,49 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "nb-mcp-server",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-12-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"keep_vars": true,
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+		"traces": {
+			"enabled": true,
+			"head_sampling_rate": 0.1,
+			"destinations": ["newrelic-traces"]
+		},
+		"logs": {
+			"enabled": true,
+			"destinations": ["newrelic-logs"]
+		}
+	},
+	// Durable Object backing the MCP session (NasebanalMcp extends McpAgent).
+	"durable_objects": {
+		"bindings": [{ "name": "MCP_OBJECT", "class_name": "NasebanalMcp" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["NasebanalMcp"] }],
+	// Grant/token storage for @cloudflare/workers-oauth-provider.
+	// Namespace title on Cloudflare: "nb-mcp-server-OAUTH_KV" (kept distinct
+	// from a pre-existing, unrelated "OAUTH_KV" namespace already in this
+	// account — see apps/CLAUDE.md's note on not reusing unaudited resources).
+	"kv_namespaces": [
+		{ "binding": "OAUTH_KV", "id": "cef1888300b74b0cb92ff06410457b5e" }
+	],
+	"dev": {
+		"port": 8791
+	},
+	// Environment variables
+	// For local development, create a .dev.vars file (see .dev.vars.example)
+	"vars": {
+		"AUTH0_DOMAIN": "dev-bv0p1636dyofjbmg.us.auth0.com",
+		"AUTH0_AUDIENCE": "https://api.nasebanal.com",
+		"SERVICE_ID": "mcp-server"
+	}
+	// Secrets (set via `wrangler secret put`):
+	// - AUTH0_CLIENT_ID / AUTH0_CLIENT_SECRET: this Worker's own Auth0
+	//   Regular Web Application (confidential client), distinct from nb-cli's
+	//   public Native/PKCE app. See README.md for the Auth0 Dashboard setup.
+	// - INTERNAL_SECRET: shared secret checked on inbound /internal/* calls
+	//   (X-Internal-Auth). Must match the value set on the other 4 APIs.
+}
