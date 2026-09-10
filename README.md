@@ -1,6 +1,6 @@
 # nb-mcp-server
 
-A public [Remote MCP](https://modelcontextprotocol.io/) server that lets you connect Claude Desktop (or any MCP client) to your NASEBANAL Growth account — access your [Target](https://target.nasebanal.com) and [Recorder](https://recorder.nasebanal.com) data for quick data entry and report generation, straight from a chat.
+A public [Remote MCP](https://modelcontextprotocol.io/) server that lets you connect Claude Desktop (or any MCP client) to your own [Target](https://target.nasebanal.com) and [Recorder](https://recorder.nasebanal.com) data — for quick data entry and report generation, straight from a chat.
 
 Login works like the Figma or Trello MCP connectors: add the server, a browser popup opens for a NASEBANAL (Auth0) login, and once you approve, the tools unlock for your account. No manual token copy-pasting.
 
