@@ -67,3 +67,34 @@ export async function exchangeCode(
   }
   return data;
 }
+
+// Mints a new NASEBANAL access token from the refresh token captured at
+// login (requires the `offline_access` scope requested in
+// buildAuthorizeUrl, and the "Refresh Token" grant enabled in Auth0's
+// Application settings). Used by tokenExchangeCallback (index.ts) so the
+// downstream Auth0 token stays fresh across the OAuth provider's own
+// ~hourly outer-token refresh cycle, instead of going stale silently while
+// Claude's own connection keeps looking healthy.
+export async function refreshToken(env: Env, refreshTokenValue: string): Promise<Auth0TokenResponse> {
+  const response = await fetch(`https://${env.AUTH0_DOMAIN}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'refresh_token',
+      client_id: env.AUTH0_CLIENT_ID,
+      client_secret: env.AUTH0_CLIENT_SECRET,
+      refresh_token: refreshTokenValue,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Auth0TokenExchangeError(`Auth0 token refresh failed (${response.status}): ${body}`, response.status);
+  }
+
+  const data = (await response.json()) as Auth0TokenResponse;
+  if (!data.access_token) {
+    throw new Auth0TokenExchangeError('Auth0 refresh response had no access_token', 502);
+  }
+  return data;
+}

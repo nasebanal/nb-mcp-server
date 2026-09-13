@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Auth0TokenExchangeError, buildAuthorizeUrl, exchangeCode } from '../auth/auth0';
+import { Auth0TokenExchangeError, buildAuthorizeUrl, exchangeCode, refreshToken } from '../auth/auth0';
 import type { Env } from '../types';
 
 const env = {
@@ -81,5 +81,52 @@ describe('exchangeCode', () => {
     await expect(
       exchangeCode(env, { code: 'code', redirectUri: 'https://x/callback', codeVerifier: 'v' })
     ).rejects.toBeInstanceOf(Auth0TokenExchangeError);
+  });
+});
+
+describe('refreshToken', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('POSTs the refresh_token grant with client_secret and the given refresh token', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 'new-at', refresh_token: 'new-rt', token_type: 'Bearer', expires_in: 3600 }), {
+        status: 200,
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await refreshToken(env, 'old-rt');
+
+    expect(result.access_token).toBe('new-at');
+    expect(result.refresh_token).toBe('new-rt');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://test-tenant.us.auth0.com/oauth/token');
+    const body = JSON.parse(init.body);
+    expect(body).toMatchObject({
+      grant_type: 'refresh_token',
+      client_id: 'client-id',
+      client_secret: 'client-secret',
+      refresh_token: 'old-rt',
+    });
+  });
+
+  it('throws Auth0TokenExchangeError with the upstream status on a non-2xx response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'invalid_grant' }), { status: 401 }))
+    );
+
+    const err = await refreshToken(env, 'revoked-rt').catch((e) => e);
+    expect(err).toBeInstanceOf(Auth0TokenExchangeError);
+    expect(err.status).toBe(401);
+  });
+
+  it('throws Auth0TokenExchangeError when access_token is missing from an otherwise-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({}), { status: 200 })));
+
+    await expect(refreshToken(env, 'rt')).rejects.toBeInstanceOf(Auth0TokenExchangeError);
   });
 });
