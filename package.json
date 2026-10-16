@@ -29,6 +29,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.0.0",
+    "@nasebanal/api-specs-recorder": "1.7.0",
+    "@nasebanal/api-specs-target": "1.5.0",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
     "@vitest/coverage-v8": "^5.0.0",
