@@ -20,6 +20,12 @@ export const TOOL_OPERATIONS: Record<string, OperationRef> = {
   target_create: { spec: 'target', operationId: 'createTarget' },
   target_update: { spec: 'target', operationId: 'updateTarget' },
   target_delete: { spec: 'target', operationId: 'deleteTarget' },
+  target_cell_update: { spec: 'target', operationId: 'updateTargetCell' },
+  target_set_parent: { spec: 'target', operationId: 'setTargetParent' },
+  target_shared_list: { spec: 'target', operationId: 'listSharedTargets' },
+  target_share_list: { spec: 'target', operationId: 'listMyShares' },
+  target_share_with_me_list: { spec: 'target', operationId: 'listSharesWithMe' },
+  target_share_create: { spec: 'target', operationId: 'createShare' },
   recorder_record_list: { spec: 'recorder', operationId: 'getRecords' },
   recorder_record_create: { spec: 'recorder', operationId: 'createRecord' },
   recorder_record_update: { spec: 'recorder', operationId: 'updateRecord' },
@@ -27,25 +33,24 @@ export const TOOL_OPERATIONS: Record<string, OperationRef> = {
   recorder_goal_list: { spec: 'recorder', operationId: 'getGoals' },
   recorder_goal_create: { spec: 'recorder', operationId: 'createGoal' },
   recorder_stats: { spec: 'recorder', operationId: 'getRecordStats' },
+  recorder_record_get: { spec: 'recorder', operationId: 'getRecord' },
+  recorder_record_export: { spec: 'recorder', operationId: 'exportRecords' },
+  recorder_goal_progress: { spec: 'recorder', operationId: 'getGoalProgress' },
+  recorder_goal_update: { spec: 'recorder', operationId: 'updateGoal' },
+  recorder_tag_update: { spec: 'recorder', operationId: 'updateTag' },
+  recorder_share_list: { spec: 'recorder', operationId: 'getMyShares' },
+  recorder_share_with_me_list: { spec: 'recorder', operationId: 'getSharedWithMe' },
+  recorder_shared_graph_list: { spec: 'recorder', operationId: 'getMySharedGraphs' },
+  recorder_share_create: { spec: 'recorder', operationId: 'createShare' },
 };
 
 export interface UnexposedOperation extends OperationRef {
-  /** excluded: not meant to be a tool. planned: should become a tool, not built yet. */
-  disposition: 'excluded' | 'planned';
   reason: string;
 }
 
-function unexposed(
-  disposition: UnexposedOperation['disposition'],
-  spec: SpecName,
-  reason: string,
-  operationIds: string[]
-): UnexposedOperation[] {
-  return operationIds.map((operationId) => ({ spec, operationId, disposition, reason }));
+function excluded(spec: SpecName, reason: string, operationIds: string[]): UnexposedOperation[] {
+  return operationIds.map((operationId) => ({ spec, operationId, reason }));
 }
-
-const excluded = (spec: SpecName, reason: string, ids: string[]) => unexposed('excluded', spec, reason, ids);
-const planned = (spec: SpecName, reason: string, ids: string[]) => unexposed('planned', spec, reason, ids);
 
 const NO_USE = 'The MCP session is already authenticated; nothing for an agent to do with it';
 const EMAIL_TOKEN = 'Redeems a token from an emailed link: a screen flow, not an agent task';
@@ -56,11 +61,9 @@ const PUBLISH = 'Publishes data on a public URL';
 const BINARY = 'Binary or unauthenticated payload, a poor fit for a text-only MCP tool';
 const DELETE_REVISIT =
   'Single delete: held back for now. target_delete is exposed, so decide whether to align the two';
-const READ_SHARES = 'Read-only view of sharing state';
-const WRITE_FOLLOWUP = 'Write that completes an existing tool family; add with its own input schema';
 
 /**
- * Every operation without a tool. Each entry needs a reason; the coverage test fails on an
+ * Every operation deliberately without a tool. Each entry needs a reason; the coverage test fails on an
  * operation that is neither a tool nor listed here, and on an entry that no longer exists
  * in the contract.
  */
@@ -79,9 +82,6 @@ export const UNEXPOSED_OPERATIONS: UnexposedOperation[] = [
     'getRecipientContextOptions',
   ]),
   ...excluded('target', VISIBILITY, ['toggleShareVisibility', 'toggleSharePaused']),
-  ...planned('target', READ_SHARES, ['listSharedTargets', 'listMyShares', 'listSharesWithMe']),
-  ...planned('target', WRITE_FOLLOWUP, ['updateTargetCell', 'setTargetParent']),
-  ...planned('target', 'Makes data visible to someone else: add with a confirmation step', ['createShare']),
 
   // --- recorder ---
   ...excluded('recorder', NO_USE, ['getHealth', 'getCurrentUser']),
@@ -117,14 +117,4 @@ export const UNEXPOSED_OPERATIONS: UnexposedOperation[] = [
   ]),
   ...excluded('recorder', 'Bulk import: a mistaken call is expensive to clean up', ['importRecords']),
   ...excluded('recorder', DELETE_REVISIT, ['deleteRecord', 'deleteGoal', 'deleteTag']),
-  ...planned('recorder', 'Read-only; the list tools alone cannot answer these', [
-    'getRecord',
-    'getGoalProgress',
-  ]),
-  ...planned('recorder', READ_SHARES, ['getMyShares', 'getSharedWithMe', 'getMySharedGraphs']),
-  ...planned('recorder', WRITE_FOLLOWUP, ['updateGoal', 'updateTag']),
-  ...planned('recorder', 'Read-only, but the response can be large: cap or paginate when adding', [
-    'exportRecords',
-  ]),
-  ...planned('recorder', 'Makes data visible to someone else: add with a confirmation step', ['createShare']),
 ];

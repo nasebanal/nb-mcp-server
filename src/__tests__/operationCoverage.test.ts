@@ -67,7 +67,7 @@ describe('MCP tools vs. the pinned API contracts', () => {
     const problems: string[] = [];
     for (const e of UNEXPOSED_OPERATIONS) {
       const k = key(e.spec, e.operationId);
-      if (exposed.has(k)) problems.push(`${k} is a tool and also listed as ${e.disposition}`);
+      if (exposed.has(k)) problems.push(`${k} is a tool and also listed as unexposed`);
       if (seen.has(k)) problems.push(`${k} is listed twice`);
       seen.add(k);
     }
