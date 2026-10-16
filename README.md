@@ -15,6 +15,12 @@ Login works like the Figma or Trello MCP connectors: add the server, a browser p
 | `target_create` | Create a Target (optionally as a sub-target via `parent_id`) |
 | `target_update` | Update a Target's title/description/memo |
 | `target_delete` | Delete a Target |
+| `target_cell_update` | Update the text/progress of one cell of a Target |
+| `target_set_parent` | Move a Target under another Target (`parent_target_id: null` makes it top-level) |
+| `target_shared_list` | List Targets other people shared with you |
+| `target_share_list` | List the shares you created |
+| `target_share_with_me_list` | List share invitations addressed to you |
+| `target_share_create` | Share a Target by email. Sends an invitation, so it requires `confirm: true` |
 
 **Recorder**
 
@@ -27,8 +33,17 @@ Login works like the Figma or Trello MCP connectors: add the server, a browser p
 | `recorder_goal_list` | List Goals |
 | `recorder_goal_create` | Create a Goal on an existing tag |
 | `recorder_stats` | Summary stats (count/min/max/average/latest) for a tag — the report-generation tool |
+| `recorder_record_get` | Get one logged data point by id |
+| `recorder_record_export` | Export data points as CSV text (cut off at 100,000 characters) |
+| `recorder_goal_progress` | Current progress of every Goal |
+| `recorder_goal_update` | Update a Goal |
+| `recorder_tag_update` | Update a tag's name/unit/chart type/data type |
+| `recorder_share_list` | List the shares you created |
+| `recorder_share_with_me_list` | List share invitations addressed to you |
+| `recorder_shared_graph_list` | List your public shared graphs |
+| `recorder_share_create` | Share Recorder data by email. Sends an invitation, so it requires `confirm: true` |
 
-Out of scope for now: sharing/collaboration, media upload, public/shared-graph endpoints, bulk operations. These wrap [`@nasebanal/sdk`](../nb-sdk), which already exposes the full API surface — adding more tools is mostly a matter of registering them in `src/mcp/tools/`.
+Out of scope for now: accepting/rejecting/transferring shares, visibility toggles, media upload, creating or editing public shared graphs, single and bulk deletes other than `target_delete`, and import. Every contract operation without a tool is listed with its reason in `src/mcp/operations.ts`. These wrap [`@nasebanal/sdk`](../nb-sdk), which already exposes the full API surface — adding more tools is mostly a matter of registering them in `src/mcp/tools/`.
 
 ## How it works
 
