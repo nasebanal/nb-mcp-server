@@ -50,7 +50,7 @@ Out of scope for now: accepting/rejecting/transferring shares, visibility toggle
 - **`src/index.ts`** — [`@cloudflare/workers-oauth-provider`](https://github.com/cloudflare/workers-oauth-provider) owns the top-level `fetch`. It validates bearer tokens on `/mcp` itself and hands everything else to our own `defaultHandler`.
 - **`src/auth/handler.ts`** — bridges the MCP client's OAuth dance to Auth0: `/authorize` redirects to Auth0 login (with its own PKCE leg, separate from the one the OAuth Provider runs against the MCP client); `/callback` exchanges the code, resolves the caller's NASEBANAL account via `nb.account.me.get()` (which also JIT-provisions the user), and completes the grant with that numeric account id as `userId` — not the raw Auth0 `sub`, so the grant is purgeable on account deletion (see below).
 - **`src/mcp/agent.ts`** — `NasebanalMcp`, a [`McpAgent`](https://developers.cloudflare.com/agents/api-reference/mcp-agent-api/) that registers the tools above against an `@nasebanal/sdk` client authenticated with the session's Auth0 access token.
-- **`POST /internal/users/purge`** — implements the org's mandatory account-deletion fan-out contract (see `apps/CLAUDE.md`): revokes every OAuth grant for a deleted user.
+- **Account-deletion hook** — an internal, secret-protected endpoint that implements the org's account-deletion fan-out contract (see `apps/CLAUDE.md`): revokes every OAuth grant for a deleted user.
 
 **Auth0 token refresh** (2026-09): `src/index.ts`'s `tokenExchangeCallback` refreshes the downstream Auth0 access token using the stored refresh token every time `@cloudflare/workers-oauth-provider` renews its own (outer) access token — roughly hourly. Before this was wired up, the outer OAuth grant kept refreshing itself for up to 30 days while silently carrying the stale inner Auth0 token forward, so Claude's connection looked healthy while every tool call failed with a swallowed 401. If the refresh token itself is revoked or the NASEBANAL user is deleted, the callback throws `OAuthError('invalid_grant', ...)`, which fails the outer refresh too — so Claude correctly prompts a fresh login rather than failing silently.
 
@@ -82,7 +82,7 @@ npm run dev
 ```bash
 wrangler secret put AUTH0_CLIENT_ID
 wrangler secret put AUTH0_CLIENT_SECRET
-wrangler secret put INTERNAL_SECRET   # must match the value on the other 4 NASEBANAL APIs
+wrangler secret put INTERNAL_SECRET   # secret for internal service-to-service calls
 ```
 
 ### 4. Connect from Claude Desktop
@@ -95,6 +95,6 @@ Settings → Connectors → Add custom connector → the deployed `/mcp` URL →
 
 ## Follow-ups tracked outside this repo
 
-- Add `nb-mcp-server` to `nb-account-api`'s `PURGE_TARGETS` + Service Binding, so account deletion actually calls this repo's `/internal/users/purge`.
+- Add `nb-mcp-server` to `nb-account-api`'s `PURGE_TARGETS` + Service Binding, so account deletion actually calls this repo's account-deletion hook.
 - Add `bin/config/cloudflare/nb-mcp-server.sh` (secret management script).
 - Add a row to `apps/CLAUDE.md`'s port table for `nb-mcp-server` (dev port `8791`).
